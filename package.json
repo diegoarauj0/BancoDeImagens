@@ -1,0 +1,30 @@
+{
+  "name": "redesocialdeimagens",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/diegoarauj0/RedeSocialDeImagens#readme",
+  "bugs": {
+    "url": "https://github.com/diegoarauj0/RedeSocialDeImagens/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diegoarauj0/RedeSocialDeImagens.git"
+  },
+  "license": "ISC",
+  "author": "DiegoArauj0",
+  "type": "commonjs",
+  "main": "build/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node build/index.js",
+    "dev": "tsx src/index.ts",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  }
+}
