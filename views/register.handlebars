@@ -1,0 +1,28 @@
+<form action="/auth/register" method="post" autocomplete="on">
+  <div>
+    {{#if errors.body.username}}
+      <div class="error"><p>{{errors.body.username.message}}</p></div>
+    {{/if}}
+    <label for="username">Username:</label>
+    <input type="text" name="username" id="username" autocomplete="username" required min="1" maxlength="16">
+  </div>
+
+  <div>
+    {{#if errors.body.email}}
+      <div class="error"><p>{{errors.body.email.message}}</p></div>
+    {{/if}}
+    <label for="email">Email:</label>
+    <input type="email" name="email" id="email" autocomplete="email" required>
+  </div>
+
+    <div>
+    {{#if errors.body.password}}
+      <div class="error"><p>{{errors.body.password.message}}</p></div>
+    {{/if}}
+    <label for="password">Password:</label>
+    <input type="password" name="password" id="password" minlength="8" required maxlength="64" autocomplete="new-password">
+  </div>
+
+  <button type="submit">Register</button>
+  <a href="/auth/login">login</a>
+</form>
