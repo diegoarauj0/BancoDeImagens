@@ -1,0 +1,46 @@
+version: "3"
+
+services:
+  redis:
+    image: redis
+    restart: always
+    container_name: redis
+  mongo:
+    image: mongo
+    restart: always
+    container_name: mongo
+  rediscommander:
+    container_name: redis-commander
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+    - REDIS_HOSTS=local:redis:6379
+    ports:
+    - "8082:8081"
+    depends_on:
+      - redis
+  mongo_express:
+    image: mongo-express
+    container_name: mongo_express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
+    depends_on:
+      - mongo
+  app:
+    build: .
+    container_name: app
+    command: npm start
+    environment:
+      - MONGODB=mongodb://mongo:27017/App
+      - REDIS=redis://redis:6379
+      - PORT=80
+    depends_on:
+      - redis
+      - mongo
+    ports:
+      - "80:80"
