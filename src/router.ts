@@ -1,8 +1,14 @@
-import express from "express"
-import AuthenticationController from "./controllers/authenticationController"
+import { Router } from "express"
+import localAuthenticationController from "./controllers/auth/localAuthenticationController"
+import googleAuthenticationController from "./controllers/auth/googleAuthenticationController"
+import authenticationController from "./controllers/auth/authenticationController"
 
-const router = express.Router()
+export default async function createRouter(): Promise<Router> {
+  const router = Router()
 
-router.use("/auth", new AuthenticationController().router)
+  router.use("/Authentication", await authenticationController.router())
+  router.use("/Authentication", await localAuthenticationController.router())
+  router.use("/Authentication", await googleAuthenticationController.router())
 
-export default router
+  return router
+}

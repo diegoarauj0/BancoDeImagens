@@ -23,15 +23,14 @@ export default class App {
 
   private async initiate(): Promise<void> {
     //Database
-    console.group("----- Connect Database -----\n")
     await connectMongoDB()
     this.redisClient = await connectRedis()
-    console.groupEnd()
 
     //express
     this.engine()
     this.session()
     this.middleware()
+    this.app.use(await router())
 
     //listen
     await this.listen()
@@ -62,7 +61,6 @@ export default class App {
     this.app.use(express.json({ strict:true }))
     this.app.use("/static", express.static(path.join(__dirname, "../", "static")))
     this.app.use(cors())
-    this.app.use(router)
   }
 
   private listen(): Promise<void> {

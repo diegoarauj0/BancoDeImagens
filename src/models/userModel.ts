@@ -1,16 +1,18 @@
-import { Schema, model } from "mongoose"
+import { Model, Schema, model } from "mongoose"
 import bcrypt from "bcryptjs"
 import validator from "validator"
 
-export interface userModelPublicInterface {
+export interface userModelPublic {
   username:string;
   createdAt:Date;
 }
 
-export interface userModelInterface extends userModelPublicInterface {
+export interface userModel extends userModelPublic {
   password:string;
   email:string;
-  comparePassword:(password:string) => Promise<boolean>
+  googleID:string;
+  comparePassword:(password:string) => Promise<boolean>;
+  createSession:() => { _id:string };
 }
 
 const userSchema = new Schema({
@@ -23,7 +25,6 @@ const userSchema = new Schema({
 
   password: {
     type: String,
-    required: true,
     select: false,
     maxLength:64,
     minLength:8
@@ -31,7 +32,12 @@ const userSchema = new Schema({
 
   email: {
     type: String,
-    required: true,
+    select: false,
+    unique: true
+  },
+
+  googleID: {
+    type: String,
     select: false,
     unique: true
   },
@@ -83,8 +89,14 @@ userSchema.pre("save", async function(next) {
   next()
 })
 
+userSchema.methods.createSession = function() {
+  return { _id:this._id.toString() }
+}
+
 userSchema.methods.comparePassword = function(password:string) {
   return bcrypt.compare(password, this.password)
 }
 
-export const userModel = model<userModelInterface>("user", userSchema)
+export type userModelType = Model<userModel>
+
+export const userModel = model<userModel>("user", userSchema)

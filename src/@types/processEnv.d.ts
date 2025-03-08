@@ -1,8 +1,11 @@
 declare namespace NodeJS {
   interface ProcessEnv {
-    PORT:number,
-    MONGODB:string,
-    PASSWORD_SALT:10,
-    SESSION_SECRET:string,
+    PORT:string;
+    MONGODB:string;
+    PASSWORD_SALT:string;
+    SESSION_SECRET:string;
+    GOOGLE_CLIENT_ID:string;
+    GOOGLE_CLIENT_SECRET:string;
+    GOOGLE_REDIRECT_URL:string;
   }
 }
