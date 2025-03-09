@@ -2,13 +2,27 @@ import { Router, Request, Response } from "express"
 import asyncHandlerMiddleware from "../../middlewares/asyncHandlerMiddleware"
 
 class AuthenticationController {
-  public async router(): Promise<Router> {
-    const router = Router()
+  private router: Router
 
-    router.get("/session", asyncHandlerMiddleware(this.session))
-    router.get("/logout", asyncHandlerMiddleware(this.logout))
+  constructor() {
+    this.router = Router()
+    this.initializeRoutes()
+  }
 
-    return router
+  public get getRouter(): Router {
+    return this.router
+  }
+
+  private initializeRoutes(): void {
+    this.router.get(
+      "/session",
+      asyncHandlerMiddleware(this.session)
+    )
+
+    this.router.get(
+      "/logout",
+      asyncHandlerMiddleware(this.logout)
+    )
   }
 
   private async logout(req:Request, res:Response): Promise<void> {

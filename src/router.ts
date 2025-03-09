@@ -3,12 +3,12 @@ import localAuthenticationController from "./controllers/auth/localAuthenticatio
 import googleAuthenticationController from "./controllers/auth/googleAuthenticationController"
 import authenticationController from "./controllers/auth/authenticationController"
 
-export default async function createRouter(): Promise<Router> {
+export default function createRouter(): Router {
   const router = Router()
 
-  router.use("/Authentication", await authenticationController.router())
-  router.use("/Authentication", await localAuthenticationController.router())
-  router.use("/Authentication", await googleAuthenticationController.router())
+  router.use("/Authentication", authenticationController.getRouter)
+  router.use("/Authentication", localAuthenticationController.getRouter)
+  router.use("/Authentication", googleAuthenticationController.getRouter)
 
   return router
 }

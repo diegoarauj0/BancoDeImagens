@@ -1,26 +1,43 @@
 import { Router, Request, Response } from "express"
-import convertInvalidErrorToBadRequestErrorMiddleware from "../../middlewares/convertInvalidErrorToBadRequestErrorMiddleware"
-import HandlerBadRequestErrorMiddleware from "../../middlewares/handlerBadRequestErrorMiddleware"
 import asyncHandlerMiddleware from "../../middlewares/asyncHandlerMiddleware"
-import { BadRequestError, ErrorDetails } from "../../error/badRequestError"
+import { BadRequestError } from "../../error/badRequestError"
 import { userModel } from "../../models/userModel"
 import requiredValueMiddleware from "../../middlewares/requiredValueMiddleware"
 
 class LocalAuthenticationController {
-  public async router(): Promise<Router> {
-    const router = Router()
+  private router: Router
 
-    router.use("/login", requiredValueMiddleware("body", "email"), requiredValueMiddleware("body", "password"), asyncHandlerMiddleware(this.login), convertInvalidErrorToBadRequestErrorMiddleware, HandlerBadRequestErrorMiddleware)
-    router.use("/register", asyncHandlerMiddleware(this.register), convertInvalidErrorToBadRequestErrorMiddleware, HandlerBadRequestErrorMiddleware)
+  constructor() {
+    this.router = Router()
+    this.initializeRoutes()
+  }
 
-    return router
+  public get getRouter(): Router {
+    return this.router
+  }
+
+  private initializeRoutes(): void {
+    this.router.use(
+      "/login",
+      requiredValueMiddleware("body", "email"),
+      requiredValueMiddleware("body", "password"),
+      asyncHandlerMiddleware(this.login)
+    )
+
+    this.router.use(
+      "/register",
+      asyncHandlerMiddleware(this.register)
+    )
   }
 
   private async login(req:Request, res:Response): Promise<void> {
     if (req.method === "POST") {
-      req.pageToRenderOnError = {
-        name:"login",
-        layout:"authentication",
+      req.badRequestErrorHandlers = {
+        type:"render",
+        options:{
+          name:"login",
+          layout:"authentication",
+        }
       }
 
       req.convertInvalidErrorToBadRequestError = {
@@ -68,26 +85,34 @@ class LocalAuthenticationController {
 
   private async register(req:Request, res:Response): Promise<void> {
     if (req.method === "POST") {
-      req.pageToRenderOnError = {
-        name:"register",
-        layout:"authentication",
+      req.badRequestErrorHandlers = {
+        type:"render",
+        options:{
+          name:"login",
+          layout:"authentication",
+        }
       }
       
       req.convertInvalidErrorToBadRequestError = {
         badRequestErrorPath: "body"
       }
 
-      const user = new userModel({
-        email:req.body.email,
-        password:req.body.password,
-        username:req.body.username
-      })
-
-      await user.save()
-      
-      req.session.user = user.createSession()
-
-      res.redirect("/")
+      try {
+        const user = new userModel({
+          email:req.body.email,
+          password:req.body.password,
+          username:req.body.username
+        })
+  
+        user.save()
+        req.session.user = user.createSession()
+        res.redirect("/")
+      } catch(error) {
+        const badRequestError = new BadRequestError(req, {})
+        badRequestError.addValidationError(error)
+        throw badRequestError
+      }
+    
       return
     }
 

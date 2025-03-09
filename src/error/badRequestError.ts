@@ -8,14 +8,14 @@ export interface ErrorDetails {
 }
 
 export class BadRequestError extends Error {
-  public readonly body:ErrorDetails[]
-  public readonly header:ErrorDetails[]
-  public readonly cookie:ErrorDetails[]
-  public readonly query:ErrorDetails[]
-  public readonly params:ErrorDetails[]
+  public body:ErrorDetails[]
+  public header:ErrorDetails[]
+  public cookie:ErrorDetails[]
+  public query:ErrorDetails[]
+  public param:ErrorDetails[]
   public readonly request:Request
 
-  constructor(request:Request, errors:{  body?:ErrorDetails[], header?:ErrorDetails[], cookie?:ErrorDetails[], query?:ErrorDetails[], params?:ErrorDetails[] }) {
+  constructor(request:Request, errors:{  body?:ErrorDetails[], header?:ErrorDetails[], cookie?:ErrorDetails[], query?:ErrorDetails[], param?:ErrorDetails[] }) {
     super()
 
     this.name = "BadRequestError"
@@ -26,16 +26,48 @@ export class BadRequestError extends Error {
     this.header = errors.header || []
     this.cookie = errors.cookie || []
     this.query = errors.query || []
-    this.params = errors.params || []
+    this.param = errors.param || []
 
     Object.setPrototypeOf(this, BadRequestError.prototype)
   }
 
-  public get renderJSON(): { errors:{  body:{[key:string]:ErrorDetails}, header:{[key:string]:ErrorDetails}, cookie:{[key:string]:ErrorDetails}, query:{[key:string]:ErrorDetails}, params:{[key:string]:ErrorDetails} } } {
+  public addValidationError(validationError:any, path:"body" | "header" | "param" | "cookie" | "query" = "body"): void {
+    if (validationError.name !== "ValidationError") {
+      return
+    }
+  
+    const badRequestError:ErrorDetails[] = []
+  
+    Object.keys(validationError.errors).forEach((name) => {
+      const error = validationError.errors[name]
+  
+      const errorDetails = {
+        message:error.properties.message,
+        type:error.properties.type,
+        path:error.properties.path,
+        value:error.properties.value
+      }
+  
+      errorDetails.message = errorDetails.message.replace(/[`´]/g, "'")
+  
+      if (errorDetails.type.indexOf("--") !== -1) {
+        const param = errorDetails.type.substring(errorDetails.type.indexOf("--") + 2)
+  
+        errorDetails.type = errorDetails.type.substring(0, errorDetails.type.indexOf("--"))
+        errorDetails.message = Function(`const param = ${param};`+"return `"+errorDetails.message+"`")()
+      }
+  
+      badRequestError.push(errorDetails)
+    })
+  
+    this[path] = [ ...(this[path] as any), badRequestError ]
+  }
+
+  public get renderJSON(): { errors:{  body:{[key:string]:ErrorDetails}, header:{[key:string]:ErrorDetails}, cookie:{[key:string]:ErrorDetails}, query:{[key:string]:ErrorDetails}, param:{[key:string]:ErrorDetails} } } {
     return this.convertArrayToObject
   }
 
-  public get JSON(): { status:number, errors:{  body:ErrorDetails[], header:ErrorDetails[], cookie:ErrorDetails[], query:ErrorDetails[], params:ErrorDetails[] } } {
+  public get JSON(): { status:number, errors:{  body:ErrorDetails[], header:ErrorDetails[], cookie:ErrorDetails[], query:ErrorDetails[], param:ErrorDetails[] } } {
     return {
       status:400,
       errors: {
@@ -43,12 +75,12 @@ export class BadRequestError extends Error {
         header:this.header,
         cookie:this.cookie,
         query:this.query,
-        params:this.params
+        param:this.param
       }
     }
   }
 
-  public get convertArrayToObject(): { errors:{  body:{[key:string]:ErrorDetails}, header:{[key:string]:ErrorDetails}, cookie:{[key:string]:ErrorDetails}, query:{[key:string]:ErrorDetails}, params:{[key:string]:ErrorDetails} } } {
+  public get convertArrayToObject(): { errors:{  body:{[key:string]:ErrorDetails}, header:{[key:string]:ErrorDetails}, cookie:{[key:string]:ErrorDetails}, query:{[key:string]:ErrorDetails}, param:{[key:string]:ErrorDetails} } } {
 
     const body:{[key:string]:ErrorDetails} = {}
     this.body.forEach((error) => {body[error.path] = error})
@@ -62,8 +94,8 @@ export class BadRequestError extends Error {
     const query:{[key:string]:ErrorDetails} = {}
     this.query.forEach((error) => {query[error.path] = error})
 
-    const params:{[key:string]:ErrorDetails} = {}
-    this.params.forEach((error) => {params[error.path] = error})
+    const param:{[key:string]:ErrorDetails} = {}
+    this.param.forEach((error) => {param[error.path] = error})
 
     return {
       errors: {
@@ -71,7 +103,7 @@ export class BadRequestError extends Error {
         header:header,
         cookie:cookie,
         query:query,
-        params:params
+        param:param
       }
     }
   }

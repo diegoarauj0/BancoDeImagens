@@ -1,74 +1,70 @@
+import { engine } from "express-handlebars"
+import session from "express-session"
 import express from "express"
 import dotenv from "dotenv"
 import path from "path"
 import cors from "cors"
+
+import { unauthorizedErrorHandlerMiddleware, badRequestErrorHandlerMiddleware, internalServerErrorHandlerMiddleware, notFoundErrorHandlerMiddleware} from "./middlewares/errors/index"
+import { connectMongoDB} from "./config/database"
+import configureSession from "./config/session"
 import router from "./router"
-import session from "express-session"
-import connectRedis from "./database/connectRedis"
-import connectMongoDB from "./database/connectMongoDB"
-import { engine } from "express-handlebars"
-import { RedisClientType } from "redis"
-import { RedisStore } from "connect-redis"
 
 dotenv.config()
 
 export default class App {
-  private app:express.Application
-  private redisClient?:RedisClientType
+  private app: express.Application
 
   constructor() {
     this.app = express()
-    this.initiate()
+    this.initialize()
   }
 
-  private async initiate(): Promise<void> {
-    //Database
-    await connectMongoDB()
-    this.redisClient = await connectRedis()
-
-    //express
-    this.engine()
-    this.session()
-    this.middleware()
-    this.app.use(await router())
-
-    //listen
-    await this.listen()
-  }
-
-  private session(): void {
-    this.app.use(session({
-      name:"session",
-      store:new RedisStore({
-        client:this.redisClient,
-        prefix:"session"
-      }),
-      secret:process.env.SESSION_SECRET,
-      resave:false,
-      saveUninitialized:false,
-      cookie: { secure: false, httpOnly: true, maxAge:2592000000 }
-    }))
-  }
-
-  private engine(): void {
-    this.app.engine('handlebars', engine())
-    this.app.set('view engine', 'handlebars')
-    this.app.set('views', './views')
-  }
-
-  private middleware(): void {
-    this.app.use(express.urlencoded({ extended:true }))
-    this.app.use(express.json({ strict:true }))
-    this.app.use("/static", express.static(path.join(__dirname, "../", "static")))
-    this.app.use(cors())
-  }
-
-  private listen(): Promise<void> {
-    return new Promise<void>((resolve) => {
-      this.app.listen(process.env.PORT, () => {
-        console.log(`http/express server connected to port ${process.env.PORT}`)
-        resolve()
-      })
+  private listen(): void {
+    this.app.listen(process.env.PORT, () => {
+      console.log(`Server is running on port ${process.env.PORT}`)
     })
+  }
+
+  private async initialize(): Promise<void> {
+    await this.setupDatabase()
+    await this.setupMiddlewares()
+    await this.setupRoutes()
+    this.setupErrorHandling()
+    this.listen()
+  }
+
+  private async setupDatabase(): Promise<void> {
+    await connectMongoDB()
+  }
+
+  private async setupMiddlewares(): Promise<void> {
+    this.app.use(express.json())
+    this.app.use(express.urlencoded({ extended: true }))
+    this.app.use(express.static(path.join(__dirname, "../", "static")))
+    this.app.use(cors())
+    this.app.use(session(await configureSession()))
+    this.setupEngine()
+  }
+
+  private setupEngine(): void {
+    this.app.engine("handlebars", engine())
+    this.app.set("view engine", "handlebars")
+    this.app.set("views", path.join(__dirname, "../", "views"))
+  }
+
+  private async setupRoutes(): Promise<void> {
+    this.app.use(await router())
+  }
+
+  private setupErrorHandling(): void {
+    this.app.use(notFoundErrorHandlerMiddleware)
+    this.app.use(unauthorizedErrorHandlerMiddleware)
+    this.app.use(badRequestErrorHandlerMiddleware)
+    this.app.use(internalServerErrorHandlerMiddleware)
+  }
+
+  public getApp(): express.Application {
+    return this.app
   }
 }
